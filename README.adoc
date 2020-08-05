@@ -1,0 +1,88 @@
+# Apache Camel Kafka Source Connector Test
+Michael Genereux <mgenereu@gmail.com>
+
+## Steps to Reproduce
+
+. Create fat jar `./target/connector.jar`.
+    
+    mvn clean package
+
+. Create docker image `fdd`.
+
+    docker build -t fdd .
+    
+. Run container.
+    
+    docker run --rm -p 2181:2181 -p 3030:3030 -p 8081-8083:8081-8083 -p 9581-9585:9581-9585 -p 9092:9092 -e CONNECT_PLUGIN_PATH=/connectors fdd
+
+. Wait for the services to start up.  Takes about two minutes.
+
+. Go to browser control panel at http://localhost:3030/kafka-connect-ui/[http://localhost:3030/kafka-connect-ui/].
+
+. Click the _New_ button.
+
+. Click _CamelTimerSourceConnector_.
+
+. Click _Create_ with the default properties.
+
+. After a moment, the connector will fail.
+
+. Click the _CamelTimerSourceConnector_.
+
+. Click the box after _Tasks_ with the exclaimation mark.
+
+. The area will expand and you should see the error message shown below.
+
+## Error message
+
+----
+org.apache.kafka.connect.errors.ConnectException: Failed to create and start Camel context
+	at org.apache.camel.kafkaconnector.CamelSourceTask.start(CamelSourceTask.java:116)
+	at org.apache.kafka.connect.runtime.WorkerSourceTask.execute(WorkerSourceTask.java:202)
+	at org.apache.kafka.connect.runtime.WorkerTask.doRun(WorkerTask.java:175)
+	at org.apache.kafka.connect.runtime.WorkerTask.run(WorkerTask.java:219)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
+	at java.lang.Thread.run(Thread.java:748)
+Caused by: org.apache.camel.ResolveEndpointFailedException: Failed to resolve endpoint: direct://end?pollingConsumerBlockTimeout=0&pollingConsumerBlockWhenFull=true&pollingConsumerQueueSize=1000 due to: Error binding property (pollingConsumerBlockTimeout=0) with name: pollingConsumerBlockTimeout on bean: direct://end?pollingConsumerBlockTimeout=0&pollingConsumerBlockWhenFull=true&pollingConsumerQueueSize=1000 with value: 0
+	at org.apache.camel.impl.engine.AbstractCamelContext.doGetEndpoint(AbstractCamelContext.java:878)
+	at org.apache.camel.impl.engine.AbstractCamelContext.getEndpoint(AbstractCamelContext.java:768)
+	at org.apache.camel.kafkaconnector.utils.CamelMainSupport.getEndpoint(CamelMainSupport.java:166)
+	at org.apache.camel.kafkaconnector.CamelSourceTask.start(CamelSourceTask.java:109)
+	... 8 more
+Caused by: org.apache.camel.PropertyBindingException: Error binding property (pollingConsumerBlockTimeout=0) with name: pollingConsumerBlockTimeout on bean: direct://end?pollingConsumerBlockTimeout=0&pollingConsumerBlockWhenFull=true&pollingConsumerQueueSize=1000 with value: 0
+	at org.apache.camel.support.PropertyBindingSupport.bindProperty(PropertyBindingSupport.java:636)
+	at org.apache.camel.support.PropertyBindingSupport.lambda$doBindProperties$2(PropertyBindingSupport.java:614)
+	at java.util.stream.ForEachOps$ForEachOp$OfRef.accept(ForEachOps.java:183)
+	at java.util.stream.SortedOps$SizedRefSortingSink.end(SortedOps.java:357)
+	at java.util.stream.AbstractPipeline.copyInto(AbstractPipeline.java:483)
+	at java.util.stream.AbstractPipeline.wrapAndCopyInto(AbstractPipeline.java:472)
+	at java.util.stream.ForEachOps$ForEachOp.evaluateSequential(ForEachOps.java:150)
+	at java.util.stream.ForEachOps$ForEachOp$OfRef.evaluateSequential(ForEachOps.java:173)
+	at java.util.stream.AbstractPipeline.evaluate(AbstractPipeline.java:234)
+	at java.util.stream.ReferencePipeline.forEach(ReferencePipeline.java:485)
+	at org.apache.camel.support.PropertyBindingSupport.doBindProperties(PropertyBindingSupport.java:579)
+	at org.apache.camel.support.PropertyBindingSupport.access$000(PropertyBindingSupport.java:77)
+	at org.apache.camel.support.PropertyBindingSupport$Builder.bind(PropertyBindingSupport.java:264)
+	at org.apache.camel.support.DefaultEndpoint.setProperties(DefaultEndpoint.java:433)
+	at org.apache.camel.support.DefaultEndpoint.configureProperties(DefaultEndpoint.java:401)
+	at org.apache.camel.support.DefaultComponent.setProperties(DefaultComponent.java:453)
+	at org.apache.camel.component.direct.DirectComponent.createEndpoint(DirectComponent.java:51)
+	at org.apache.camel.support.DefaultComponent.createEndpoint(DefaultComponent.java:237)
+	at org.apache.camel.impl.engine.AbstractCamelContext.doGetEndpoint(AbstractCamelContext.java:846)
+	... 11 more
+Caused by: java.lang.IllegalArgumentException: Could not find a suitable setter for property: pollingConsumerBlockTimeout as there isn't a setter method with same type: java.lang.String nor type conversion possible: No type converter available to convert from type: java.lang.String to the required type: long with value 0
+	at org.apache.camel.support.IntrospectionSupport.setProperty(IntrospectionSupport.java:779)
+	at org.apache.camel.impl.engine.DefaultBeanIntrospection.setProperty(DefaultBeanIntrospection.java:195)
+	at org.apache.camel.support.PropertyBindingSupport.setProperty(PropertyBindingSupport.java:759)
+	at org.apache.camel.support.PropertyBindingSupport.bindProperty(PropertyBindingSupport.java:633)
+	... 29 more
+----
+
+## Notes
+
+* I'm not trying to get the Camel Timer actually perform correcly. It doesn't seem to matter what properties I provide the connector on creation.
+
+* I was unable to get just taking the multi jar package from `https://repo1.maven.org/maven2/org/apache/camel/kafkaconnector/camel-timer-kafka-connector/0.4.0/camel-timer-kafka-connector-0.4.0-package.tar.gz` and dropping into a directory under `/connectors`. I saw this method from a https://youtu.be/7Co2AN_AoM4[YouTube video] by https://github.com/hguerrero[Hugo Guerrero]. It would load into the Kafka Connect UI but running it would complain that it couldn't find supporting JARs on Camel Context creation.  I even tried adding `/connectors/camel-timer-kafka-connector/*` to the CLASSPATH and confirmed that the JARs were visible via JConsole/JMX. The fat jar was my workaround for this.
