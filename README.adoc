@@ -3,7 +3,7 @@ Michael Genereux <mgenereu@gmail.com>
 
 ## Steps to Reproduce
 
-. Create fat jar `./target/connector.jar`.
+. Create fat jar `./target/connector-jar-with-dependencies.jar`.
     
     mvn clean package
 
